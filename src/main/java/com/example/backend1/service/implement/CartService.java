@@ -1,7 +1,11 @@
 package com.example.backend1.service.implement;
 
 import com.example.backend1.model.Cart;
+import com.example.backend1.model.Food;
+import com.example.backend1.model.User;
 import com.example.backend1.repository.CartRepository;
+import com.example.backend1.repository.FoodRepository;
+import com.example.backend1.repository.UserRepository;
 import com.example.backend1.service.ICartService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -10,8 +14,17 @@ import java.util.List;
 @Service
 public class CartService implements ICartService {
 
-    @Autowired
-    private CartRepository cartRepository;
+        private final CartRepository cartRepository;
+        private final UserRepository userRepository;
+        private final FoodRepository foodRepository;
+
+        public CartService(CartRepository cartRepository,
+                           UserRepository userRepository,
+                           FoodRepository foodRepository) {
+            this.cartRepository = cartRepository;
+            this.userRepository = userRepository;
+            this.foodRepository = foodRepository;
+        }
 
     @Override
     public List<Cart> getAllCarts() {
@@ -25,39 +38,49 @@ public class CartService implements ICartService {
 
     @Override
     public Cart saveCart(Cart cart) {
-        try {
-            System.out.println("🛒 Đang lưu giỏ hàng: " + cart);
-            return cartRepository.save(cart);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+        if (cart.getUser() == null || cart.getUser().getId() == null) {
+            throw new IllegalArgumentException("Thiếu thông tin người dùng.");
         }
+        if (cart.getFood() == null || cart.getFood().getId() == null) {
+            throw new IllegalArgumentException("Thiếu thông tin món ăn.");
+        }
+
+        Long userId = cart.getUser().getId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng với ID " + userId));
+        cart.setUser(user);
+
+        Long foodId = cart.getFood().getId();
+        Food food = foodRepository.findById(foodId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy món ăn với ID " + foodId));
+        cart.setFood(food);
+
+        return cartRepository.save(cart);
     }
+
 
     @Override
     public void deleteCart(Long id) {
         cartRepository.deleteById(id);
     }
 
-    // ✅ Thêm chức năng thanh toán giỏ hàng
-    public boolean checkoutCart(Long userId) {
-        List<Cart> carts = cartRepository.findByUserId(userId);
-        if (carts.isEmpty()) {
-            return false; // Không có sản phẩm trong giỏ hàng
-        }
-
-        // Xử lý thanh toán (giả lập)
-        for (Cart cart : carts) {
-            System.out.println("✅ Thanh toán sản phẩm: " + cart.getFood().getName());
-        }
-
-        // Xóa giỏ hàng sau khi thanh toán thành công
-        cartRepository.deleteAll(carts);
-        return true;
+    @Override
+    public List<Cart> getCartsByUserId(Long userId) {
+        return cartRepository.findByUser_Id(userId);
     }
 
     @Override
-    public List<Cart> getCartsByUserId(Long userId) {
-        return cartRepository.findByUserId(userId);
+    public boolean checkoutCart(Long userId) {
+        List<Cart> carts = cartRepository.findByUser_Id(userId);
+        if (carts == null || carts.isEmpty()) {
+            return false;
+        }
+        for (Cart cart : carts) {
+            Food food = cart.getFood();
+            String foodName = (food != null) ? food.getName() : "Không rõ";
+            System.out.println("✅ Thanh toán sản phẩm: " + foodName);
+        }
+        cartRepository.deleteAll(carts);
+        return true;
     }
 }

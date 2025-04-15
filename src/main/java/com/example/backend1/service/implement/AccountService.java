@@ -6,7 +6,6 @@ import com.example.backend1.model.User;
 import com.example.backend1.repository.AccountRepository;
 import com.example.backend1.repository.UserRepository;
 import com.example.backend1.service.IAccountService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;

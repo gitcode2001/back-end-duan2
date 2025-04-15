@@ -22,7 +22,6 @@ public class FoodController {
         return foodService.getAllFoods();
     }
 
-    // Lấy thông tin một món ăn theo ID
     @GetMapping("/{id}")
     public ResponseEntity<Food> getFoodById(@PathVariable Long id) {
         Optional<Food> food = foodService.getFoodById(id);

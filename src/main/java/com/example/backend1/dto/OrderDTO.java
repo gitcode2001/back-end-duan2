@@ -1,9 +1,7 @@
 package com.example.backend1.dto;
 
 import com.example.backend1.model.Order;
-
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 @Data
@@ -13,7 +11,7 @@ public class OrderDTO {
     private Order.Status status;
     private Order.PaymentMethod paymentMethod;
     private LocalDateTime createdAt;
-    private Long userId;
+    private UserDTO user;  // Thay vì chỉ userId
 
     public OrderDTO(Order order) {
         if (order != null) {
@@ -22,7 +20,9 @@ public class OrderDTO {
             this.status = order.getStatus();
             this.paymentMethod = order.getPaymentMethod();
             this.createdAt = order.getCreatedAt();
-            this.userId = (order.getUser() != null) ? order.getUser().getId() : null; // Kiểm tra null
+            if (order.getUser() != null) {
+                this.user = new UserDTO(order.getUser());
+            }
         }
     }
 }

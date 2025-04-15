@@ -1,4 +1,4 @@
-package com.example.caseduan1.dto;
+package com.example.backend1.dto;
 
 import lombok.Getter;
 import lombok.Setter;

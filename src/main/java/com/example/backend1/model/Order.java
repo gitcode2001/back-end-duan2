@@ -1,7 +1,6 @@
 package com.example.backend1.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -16,9 +15,10 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    // Sử dụng fetch = EAGER để luôn load thông tin user
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
-    @JsonBackReference
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User user;
 
     @Column(nullable = false)
@@ -42,8 +42,8 @@ public class Order {
         this.createdAt = LocalDateTime.now();
     }
 
+    // Nếu không cần trả về OrderDetails trong JSON, bạn có thể thêm @JsonIgnore ở đây
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonManagedReference
     private Set<OrderDetail> orderDetails;
 
     public enum Status {

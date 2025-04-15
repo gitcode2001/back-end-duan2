@@ -1,6 +1,5 @@
 package com.example.backend1.controller;
 
-
 import com.example.backend1.dto.OrderDTO;
 import com.example.backend1.model.Order;
 import com.example.backend1.service.IOrderService;
@@ -29,26 +28,30 @@ public class OrderController {
     @GetMapping("/{id}")
     public ResponseEntity<OrderDTO> getOrderById(@PathVariable Long id) {
         Optional<OrderDTO> orderDTO = iorderService.getOrderById(id);
-        return orderDTO.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return orderDTO.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // Tạo mới đơn hàng
     @PostMapping
     public ResponseEntity<Order> createOrder(@RequestBody Order order) {
-        return ResponseEntity.ok(iorderService.createOrder(order));
+        Order createdOrder = iorderService.createOrder(order);
+        return ResponseEntity.status(201).body(createdOrder);
     }
 
     // Cập nhật đơn hàng
     @PutMapping("/{id}")
     public ResponseEntity<Order> updateOrder(@PathVariable Long id, @RequestBody Order updatedOrder) {
-        return iorderService.updateOrder(id, updatedOrder)
-                .map(ResponseEntity::ok)
+        Optional<Order> order = iorderService.updateOrder(id, updatedOrder);
+        return order.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // Xóa đơn hàng
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
-        return iorderService.deleteOrder(id) ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+        return iorderService.deleteOrder(id)
+                ? ResponseEntity.ok().build()
+                : ResponseEntity.notFound().build();
     }
 }
