@@ -2,9 +2,11 @@ package com.example.backend1.controller;
 
 import com.example.backend1.dto.ChangePasswordRequest;
 import com.example.backend1.dto.ForGotPassWordDTO;
-import com.example.backend1.dto.VerifyOtpDTO;
 import com.example.backend1.dto.ResetPasswordDTO;
+import com.example.backend1.dto.VerifyOtpDTO;
+import com.example.backend1.model.User;
 import com.example.backend1.service.IAccountService;
+import com.example.backend1.service.IUserService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,8 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("api/login")
-@CrossOrigin(value = "*")
+@RequestMapping("/api/login")
+@CrossOrigin("*")
 public class AccountRestController {
 
     @Value("${jwt.secret}")
@@ -29,6 +31,9 @@ public class AccountRestController {
 
     @Autowired
     private IAccountService accountService;
+
+    @Autowired
+    private IUserService userService;
 
     private String createJwtToken(String username) {
         long expirationTime = 1000 * 60 * 60 * 24;
@@ -53,12 +58,14 @@ public class AccountRestController {
             if (success) {
                 String token = createJwtToken(username);
                 String role = accountService.getRoleIdByUsername(username);
+                User user = userService.getUserByUsername(username);
 
                 response.put("success", true);
                 response.put("message", "Đăng nhập thành công");
-                response.put("role", role);
                 response.put("token", token);
                 response.put("username", username);
+                response.put("role", role != null ? role.toLowerCase() : null);
+                response.put("userId", user != null ? user.getId() : null);
                 return new ResponseEntity<>(response, HttpStatus.OK);
             } else {
                 response.put("success", false);

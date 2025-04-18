@@ -1,6 +1,5 @@
 package com.example.backend1.controller;
 
-
 import com.example.backend1.model.Category;
 import com.example.backend1.service.ICategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +17,11 @@ public class CategoryController {
     @Autowired
     private ICategoryService categoryService;
 
+    // ✅ Luôn trả về danh sách, kể cả rỗng, tránh lỗi frontend .map()
     @GetMapping
     public ResponseEntity<List<Category>> getCategories() {
         List<Category> categories = categoryService.getAllCategories();
-        return categories.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(categories);
+        return ResponseEntity.ok(categories); // KHÔNG dùng .noContent()
     }
 
     @GetMapping("/{id}")
@@ -33,7 +33,7 @@ public class CategoryController {
     @PostMapping
     public ResponseEntity<String> createCategory(@RequestBody Category category) {
         categoryService.saveCategory(category);
-        return ResponseEntity.ok("Danh mục đã được tạo thành công!");
+        return ResponseEntity.ok("✅ Danh mục đã được tạo thành công!");
     }
 
     @PutMapping("/{id}")
@@ -41,17 +41,17 @@ public class CategoryController {
         Optional<Category> existingCategory = categoryService.findById(id);
         if (existingCategory.isPresent()) {
             categoryService.updateCategory(id, category);
-            return ResponseEntity.ok("Danh mục đã được cập nhật!");
+            return ResponseEntity.ok("✅ Danh mục đã được cập nhật!");
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(404).body("❌ Không tìm thấy danh mục để cập nhật!");
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteCategory(@PathVariable Long id) {
         if (categoryService.findById(id).isPresent()) {
             categoryService.deleteCategory(id);
-            return ResponseEntity.ok("Xóa danh mục thành công!");
+            return ResponseEntity.ok("🗑️ Xoá danh mục thành công!");
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.status(404).body("❌ Không tìm thấy danh mục để xoá!");
     }
 }

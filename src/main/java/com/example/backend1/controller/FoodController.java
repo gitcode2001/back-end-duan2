@@ -2,7 +2,7 @@ package com.example.backend1.controller;
 
 import com.example.backend1.model.Food;
 import com.example.backend1.service.IFoodService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,52 +12,61 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/foods")
 @CrossOrigin("*")
+@RequiredArgsConstructor
 public class FoodController {
-    @Autowired
-    private IFoodService foodService;
 
-    // Lấy danh sách tất cả món ăn
+    private final IFoodService foodService;
+
     @GetMapping
-    public List<Food> getAllFoods() {
-        return foodService.getAllFoods();
+    public ResponseEntity<List<Food>> getAllFoods() {
+        List<Food> foods = foodService.getAllFoods();
+        if (foods.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(foods);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Food> getFoodById(@PathVariable Long id) {
-        Optional<Food> food = foodService.getFoodById(id);
-        return food.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return foodService.getFoodById(id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // Thêm món ăn mới
     @PostMapping
     public ResponseEntity<Food> createFood(@RequestBody Food food) {
-        return ResponseEntity.ok(foodService.saveFood(food));
+        try {
+            Food saved = foodService.saveFood(food);
+            return ResponseEntity.ok(saved);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    // Cập nhật thông tin món ăn
     @PutMapping("/{id}")
     public ResponseEntity<Food> updateFood(@PathVariable Long id, @RequestBody Food food) {
-        Food updatedFood = foodService.updateFood(id, food);
-        if (updatedFood != null) {
-            return ResponseEntity.ok(updatedFood);
+        Food updated = foodService.updateFood(id, food);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(updated);
     }
 
-    // Xóa món ăn theo ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFood(@PathVariable Long id) {
-        if (!foodService.getFoodById(id).isPresent()) {
+        if (foodService.getFoodById(id).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         foodService.deleteFood(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Tìm kiếm món ăn theo tên
     @GetMapping("/search")
-    public List<Food> searchFoodByName(@RequestParam String name) {
-        return foodService.searchFoodByName(name);
+    public ResponseEntity<List<Food>> searchFoodByName(@RequestParam String name) {
+        List<Food> result = foodService.searchFoodByName(name);
+        if (result.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(result);
     }
 }
-

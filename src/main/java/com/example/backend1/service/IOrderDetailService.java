@@ -1,5 +1,6 @@
 package com.example.backend1.service;
 
+import com.example.backend1.dto.TopFoodDTO;
 import com.example.backend1.model.OrderDetail;
 
 import java.util.List;
@@ -10,4 +11,6 @@ public interface IOrderDetailService {
     OrderDetail create(OrderDetail orderDetail);
     OrderDetail update(Long id, OrderDetail orderDetail);
     void delete(Long id);
+    List<TopFoodDTO> findTopSoldFoods();
+
 }

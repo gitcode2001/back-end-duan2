@@ -1,15 +1,17 @@
 package com.example.backend1.controller;
 
-
+import com.example.backend1.dto.TopFoodDTO;
 import com.example.backend1.model.OrderDetail;
 import com.example.backend1.service.IOrderDetailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/order-details")
+@CrossOrigin("*")
 public class OrderDetailController {
 
     private final IOrderDetailService orderDetailService;
@@ -28,30 +30,29 @@ public class OrderDetailController {
     @GetMapping("/{id}")
     public ResponseEntity<OrderDetail> getOrderDetailById(@PathVariable Long id) {
         OrderDetail detail = orderDetailService.findById(id);
-        if (detail == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(detail);
+        return detail != null ? ResponseEntity.ok(detail) : ResponseEntity.notFound().build();
     }
 
     @PostMapping
     public ResponseEntity<OrderDetail> createOrderDetail(@RequestBody OrderDetail orderDetail) {
-        OrderDetail created = orderDetailService.create(orderDetail);
-        return ResponseEntity.ok(created);
+        return ResponseEntity.ok(orderDetailService.create(orderDetail));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<OrderDetail> updateOrderDetail(@PathVariable Long id, @RequestBody OrderDetail orderDetail) {
         OrderDetail updated = orderDetailService.update(id, orderDetail);
-        if (updated == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(updated);
+        return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrderDetail(@PathVariable Long id) {
         orderDetailService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/top-sold")
+    public ResponseEntity<List<TopFoodDTO>> getTopSoldFoods() {
+        List<TopFoodDTO> topFoods = orderDetailService.findTopSoldFoods();
+        return topFoods.isEmpty() ? ResponseEntity.noContent().build() : ResponseEntity.ok(topFoods);
     }
 }

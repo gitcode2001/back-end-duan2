@@ -34,7 +34,7 @@ public class PaymentTransaction {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum PaymentMethod {
-        MOMO, AIRPAY, CASH
+        MOMO, AIRPAY, CASH,PAYPAL
     }
 
     public enum Status {

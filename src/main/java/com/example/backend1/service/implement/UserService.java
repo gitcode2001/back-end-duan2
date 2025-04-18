@@ -3,6 +3,7 @@ package com.example.backend1.service.implement;
 import com.example.backend1.model.Account;
 import com.example.backend1.model.User;
 import com.example.backend1.repository.AccountRepository;
+import com.example.backend1.repository.RoleRepository;
 import com.example.backend1.repository.UserRepository;
 import com.example.backend1.service.IUserService;
 import jakarta.servlet.http.HttpSession;
@@ -32,6 +33,9 @@ public class UserService implements IUserService {
     private AccountRepository accountRepository;
 
     @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
@@ -45,81 +49,71 @@ public class UserService implements IUserService {
     @Override
     public void save(User entity) {
         if (entity.getAccount() == null) {
-            entity.setAccount(new Account());
+            throw new IllegalArgumentException("Thông tin tài khoản không hợp lệ");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        String rawPassword = generateAndStorePassword(entity.getAccount().getUserName());
-        String encodedPassword = passwordEncoder.encode(rawPassword);
+        Account account = entity.getAccount();
 
-        entity.getAccount().setPassword(encodedPassword);
-        entity.getAccount().setDateCreatePassWord(now);
+        if (account.getUserName() == null || account.getPassword() == null) {
+            throw new IllegalArgumentException("Tên đăng nhập hoặc mật khẩu không được để trống");
+        }
 
-        Account savedAccount = accountRepository.save(entity.getAccount());
+        String rawPassword = account.getPassword();
+        if (rawPassword.isBlank()) {
+            rawPassword = generateAndStorePassword(account.getUserName());
+        }
+
+        account.setPassword(passwordEncoder.encode(rawPassword));
+        account.setDateCreatePassWord(LocalDateTime.now());
+
+        if (account.getRole() == null || account.getRole().getId() == null) {
+            throw new IllegalArgumentException("Vai trò không tồn tại hoặc không hợp lệ");
+        }
+
+        account.setRole(roleRepository.findById(account.getRole().getId()).orElseThrow(() ->
+                new IllegalArgumentException("Vai trò không hợp lệ hoặc không tìm thấy")));
+
+        Account savedAccount = accountRepository.save(account);
         entity.setAccount(savedAccount);
 
-        userRepository.save(entity);
+        User savedUser = userRepository.save(entity);
 
         emailService.sendPasswordEmail(
-                entity.getFullName(),
-                entity.getEmail(),
+                savedUser.getFullName(),
+                savedUser.getEmail(),
                 rawPassword,
-                entity.getAccount().getUserName(),
-                entity.getId()
+                savedUser.getAccount().getUserName(),
+                savedUser.getId()
         );
 
-        // Debug: In thông tin Role
-        if (entity.getAccount() != null && entity.getAccount().getRole() != null) {
-            System.out.println("Role từ entity: " + entity.getAccount().getRole().getNameRoles());
-        } else {
-            System.out.println("Role bị null!");
-        }
+        System.out.println("✅ Đã lưu người dùng với vai trò: " + savedUser.getAccount().getRole().getNameRoles());
     }
 
     @Override
     public void update(Long id, User entity) {
         User existingUser = userRepository.findById(id).orElse(null);
         if (existingUser != null) {
-            // Cập nhật các trường của User
-            if (entity.getAddress() != null) {
-                existingUser.setAddress(entity.getAddress());
-            }
-            if (entity.getPhoneNumber() != null) {
-                existingUser.setPhoneNumber(entity.getPhoneNumber());
-            }
-            if (entity.getGender() != null) {
-                existingUser.setGender(entity.getGender());
-            }
-            if (entity.getFullName() != null) {
-                existingUser.setFullName(entity.getFullName());
-            }
-            if (entity.getEmail() != null) {
-                existingUser.setEmail(entity.getEmail());
-            }
-            if (entity.getBirthDate() != null) {
-                existingUser.setBirthDate(entity.getBirthDate());
-            }
-            // Cập nhật thông tin Account
+            if (entity.getAddress() != null) existingUser.setAddress(entity.getAddress());
+            if (entity.getPhoneNumber() != null) existingUser.setPhoneNumber(entity.getPhoneNumber());
+            if (entity.getGender() != null) existingUser.setGender(entity.getGender());
+            if (entity.getFullName() != null) existingUser.setFullName(entity.getFullName());
+            if (entity.getEmail() != null) existingUser.setEmail(entity.getEmail());
+            if (entity.getBirthDate() != null) existingUser.setBirthDate(entity.getBirthDate());
+
             if (entity.getAccount() != null) {
                 Account existingAccount = existingUser.getAccount();
                 if (existingAccount == null) {
                     existingAccount = new Account();
                     existingUser.setAccount(existingAccount);
                 }
-                if (entity.getAccount().getUserName() != null) {
+                if (entity.getAccount().getUserName() != null)
                     existingAccount.setUserName(entity.getAccount().getUserName());
-                }
-                // Nếu có mật khẩu mới (không rỗng) thì cập nhật
                 if (entity.getAccount().getPassword() != null && !entity.getAccount().getPassword().isEmpty()) {
-                    String newPassword = entity.getAccount().getPassword();
-                    String hashedPassword = passwordEncoder.encode(newPassword);
-                    existingAccount.setPassword(hashedPassword);
+                    existingAccount.setPassword(passwordEncoder.encode(entity.getAccount().getPassword()));
                 }
-                // Cập nhật trạng thái locked
                 existingAccount.setLocked(entity.getAccount().isLocked());
-                // Cập nhật role nếu có
-                if (entity.getAccount().getRole() != null) {
-                    existingAccount.setRole(entity.getAccount().getRole());
+                if (entity.getAccount().getRole() != null && entity.getAccount().getRole().getId() != null) {
+                    existingAccount.setRole(roleRepository.findById(entity.getAccount().getRole().getId()).orElse(null));
                 }
                 existingAccount.setDateCreatePassWord(LocalDateTime.now());
             }
@@ -152,7 +146,6 @@ public class UserService implements IUserService {
         return userRepository.findByAccount_UserName(username);
     }
 
-    // Sửa lại phương thức findAllUser để trả về tất cả user (active và locked)
     @Override
     public Page<User> findAllUser(Pageable pageable, String search) {
         return userRepository.findAllUsers(
@@ -161,7 +154,6 @@ public class UserService implements IUserService {
         );
     }
 
-    // Sinh ra mật khẩu ngẫu nhiên và lưu vào session (nếu cần)
     private String generateAndStorePassword(String username) {
         String rawPassword = RandomStringUtils.randomAlphanumeric(8);
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
